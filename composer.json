@@ -1,0 +1,36 @@
+{
+    "name": "labor-digital/typo3-distributed-cache-clearing",
+    "type": "typo3-cms-extension",
+    "description": "Handler to clear the cache in multi-container setups",
+    "authors": [
+        {
+            "name": "LABOR.digital",
+            "email": "info@labor.tools",
+            "homepage": "https://www.labor.digital",
+            "role": "Company"
+        },
+        {
+            "name": "Martin Neundorfer",
+            "email": "code@neunerlei.eu",
+            "homepage": "https://www.neunerlei.eu",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/labor-digital/typo3-distributed-cache-clearing/issues",
+        "source": "https://github.com/labor-digital/typo3-distributed-cache-clearing"
+    },
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "LaborDigital\\T3dcc\\": "Classes"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "t3dcc"
+        }
+    },
+    "version": "9.0.0"
+}
