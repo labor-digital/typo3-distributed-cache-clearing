@@ -21,8 +21,7 @@
         "issues": "https://github.com/labor-digital/typo3-distributed-cache-clearing/issues",
         "source": "https://github.com/labor-digital/typo3-distributed-cache-clearing"
     },
-    "require": {
-    },
+    "require": {},
     "autoload": {
         "psr-4": {
             "LaborDigital\\T3dcc\\": "Classes"
@@ -33,5 +32,5 @@
             "extension-key": "t3dcc"
         }
     },
-    "version": "9.0.0"
+    "version": "9.1.0"
 }
