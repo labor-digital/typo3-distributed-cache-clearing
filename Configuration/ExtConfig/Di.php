@@ -56,7 +56,7 @@ class Di implements ConfigureDiInterface
                  ->set(RedisMessageBackend::class)
                  ->set(RegistryMessageBackend::class)
                  ->set(ClearCacheService::class)
-                 ->set(MessageHandlerApplication::class)
+                 ->set(MessageHandlerApplication::class)->public()
                  ->set(Applier::class);
     }
     
