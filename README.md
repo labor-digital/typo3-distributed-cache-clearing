@@ -5,7 +5,7 @@ with all kinds of message queue backends. By default a DB/TYPO3 Registry and Red
 
 ## Requirements
 
-- TYPO3 v9
+- TYPO3 v10
 - [TYPO3 - Better API](https://github.com/labor-digital/typo3-better-api)
 - Installation using Composer
 
@@ -19,21 +19,26 @@ composer require labor-digital/typo3-distributed-cache-clearing
 
 ## Usage
 
-To utilize the distributed cache clearing you need to register a backend class using the ext config class.
+To utilize the distributed cache clearing you need to register a backend class using the ext config logic.
 This will activate the message handling when the TYPO3 cache is cleared in the backend or though the CLI.
 
 ```php
 <?php
-use LaborDigital\T3dcc\Core\Message\Backend\Registry\RegistryMessageBackend;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigContext;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigInterface;
-use LaborDigital\Typo3BetterApi\ExtConfig\OptionList\ExtConfigOptionList;
 
-class MyExtConfig implements ExtConfigInterface{
-    public function configure(ExtConfigOptionList $configurator, ExtConfigContext $context){
+namespace LaborDigital\T3baExample\Configuration\ExtConfig;
+
+use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
+use LaborDigital\T3dcc\Core\Message\Backend\Registry\RegistryMessageBackend;
+use LaborDigital\T3dcc\ExtConfigHandler\ConfigureDistributedCacheClearingInterface;
+use LaborDigital\T3dcc\ExtConfigHandler\DccConfigurator;
+
+class Dcc implements ConfigureDistributedCacheClearingInterface
+{
+    public static function configureDistributedCacheClearing(DccConfigurator $configurator, ExtConfigContext $context): void
+    {
         // You can use any of the built-in backends or a class that implements the MessageBackendInterface here.
         // Additional options for the backend can be provided as second parameter
-        $configurator->distCache()->setMessageBackend(RegistryMessageBackend::class);
+        $configurator->setMessageBackend(RegistryMessageBackend::class);
     }
 }
 ```
@@ -45,33 +50,29 @@ especially if external event queues (SNS, ServiceBus, ...) are used.
 
 ```php
 <?php
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigContext;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigInterface;
-use LaborDigital\Typo3BetterApi\ExtConfig\OptionList\ExtConfigOptionList;
 
-class MyExtConfig implements ExtConfigInterface{
-    public function configure(ExtConfigOptionList $configurator, ExtConfigContext $context){
-        $configurator->distCache()->setCheckInEveryRequest(true);
+namespace LaborDigital\T3baExample\Configuration\ExtConfig;
+
+use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
+use LaborDigital\T3dcc\Core\Message\Backend\Registry\RegistryMessageBackend;
+use LaborDigital\T3dcc\ExtConfigHandler\ConfigureDistributedCacheClearingInterface;
+use LaborDigital\T3dcc\ExtConfigHandler\DccConfigurator;
+
+class Dcc implements ConfigureDistributedCacheClearingInterface
+{
+    public static function configureDistributedCacheClearing(DccConfigurator $configurator, ExtConfigContext $context): void
+    {
+        $configurator->setCheckInEveryRequest(true)
     }
 }
 ```
 
 If your infrastructure allows you to perform an HTTP request to EACH container independently,
-and you use the T3FA extension, you can use the provided route in your ext config.
-You can now use the `/dcc/clearIfRequired` route to handle clear cache messages if required.
+and you use the T3FA extension, you may use the `DccBundle` in your site routing configuration
+The route will be available at: `/dcc/clearIfRequired`.
 
 ```php
-<?php
-use LaborDigital\T3dcc\Api\Route\DccRoute;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigContext;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigInterface;
-use LaborDigital\Typo3BetterApi\ExtConfig\OptionList\ExtConfigOptionList;
-
-class MyExtConfig implements ExtConfigInterface{
-    public function configure(ExtConfigOptionList $configurator, ExtConfigContext $context){
-        $configurator->frontendApi()->routing()->registerRouteController(DccRoute::class);
-    }
-}
+Not yet implemented!
 ```
 
 Alternatively you can use the built-in cli command `t3dcc:handleMessages` which does the same.
@@ -106,13 +107,18 @@ The configuration follows the same structure as the redis cache backend.
 
 ```php
 <?php
-use LaborDigital\T3dcc\Core\Message\Backend\Redis\RedisMessageBackend;use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigContext;
-use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigInterface;
-use LaborDigital\Typo3BetterApi\ExtConfig\OptionList\ExtConfigOptionList;
+namespace LaborDigital\T3baExample\Configuration\ExtConfig;
 
-class MyExtConfig implements ExtConfigInterface{
-    public function configure(ExtConfigOptionList $configurator, ExtConfigContext $context){
-        $configurator->distCache()->setMessageBackend(
+use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
+use LaborDigital\T3dcc\Core\Message\Backend\Redis\RedisMessageBackend;
+use LaborDigital\T3dcc\ExtConfigHandler\ConfigureDistributedCacheClearingInterface;
+use LaborDigital\T3dcc\ExtConfigHandler\DccConfigurator;
+
+class Dcc implements ConfigureDistributedCacheClearingInterface
+{
+    public static function configureDistributedCacheClearing(DccConfigurator $configurator, ExtConfigContext $context): void
+    {
+        $configurator->setMessageBackend(
         RedisMessageBackend::class,
         [
             // Required
