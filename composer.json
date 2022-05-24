@@ -2,6 +2,7 @@
     "name": "labor-digital/typo3-distributed-cache-clearing",
     "type": "typo3-cms-extension",
     "description": "Handler to clear the cache in multi-container setups",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "LABOR.digital",
