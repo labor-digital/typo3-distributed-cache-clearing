@@ -23,26 +23,36 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Command;
 
 
+use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3ba\ExtConfigHandler\Command\ConfigureCliCommandInterface;
 use LaborDigital\T3dcc\Core\ClearCacheService;
-use LaborDigital\Typo3BetterApi\Container\ContainerAwareTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class HandleMessagesCommand extends Command
+class HandleMessagesCommand extends Command implements ConfigureCliCommandInterface
 {
     use ContainerAwareTrait;
-
+    
+    /**
+     * @inheritDoc
+     */
+    protected function configure(): void
+    {
+        $this->setName('t3dcc:handleMessages');
+        $this->setDescription('Clears the configured caches if a clear-cache message was received by another instance. This job must RUN ON ALL INSTANCES!');
+    }
+    
     /**
      * @inheritDoc
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->writeln('Checking messages...');
-
-        $this->getInstanceOf(ClearCacheService::class)->clearCacheIfRequired();
-
+        
+        $this->makeInstance(ClearCacheService::class)->clearCacheIfRequired();
+        
         return 0;
     }
-
+    
 }

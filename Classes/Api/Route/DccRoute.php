@@ -23,9 +23,9 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Api\Route;
 
 
+use LaborDigital\T3ba\Core\Exception\NotImplementedException;
 use LaborDigital\T3dcc\Core\ClearCacheService;
-use LaborDigital\Typo3FrontendApi\ApiRouter\Configuration\RouteCollector;
-use LaborDigital\Typo3FrontendApi\ApiRouter\Controller\AbstractRouteController;
+use LaborDigital\T3fa\Core\Routing\Controller\AbstractRouteController;
 use Psr\Http\Message\ResponseInterface;
 
 class DccRoute extends AbstractRouteController
@@ -34,12 +34,13 @@ class DccRoute extends AbstractRouteController
      * @var \LaborDigital\T3dcc\Core\ClearCacheService
      */
     protected $cacheService;
-
+    
     public function __construct(ClearCacheService $cacheService)
     {
+        throw new NotImplementedException();
         $this->cacheService = $cacheService;
     }
-
+    
     /**
      * @inheritDoc
      */
@@ -47,11 +48,11 @@ class DccRoute extends AbstractRouteController
     {
         $routes->get('/dcc/clearIfRequired', 'clearAction');
     }
-
+    
     public function clearAction(): ResponseInterface
     {
         $this->cacheService->clearCacheIfRequired();
-
+        
         return $this->getJsonOkResponse();
     }
 }

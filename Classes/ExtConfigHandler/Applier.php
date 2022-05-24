@@ -14,56 +14,68 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Last modified: 2022.05.13 at 11:57
+ * Last modified: 2022.05.24 at 19:01
  */
 
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3dcc\EventHandler;
+namespace LaborDigital\T3dcc\ExtConfigHandler;
 
 
+use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3ba\Event\Core\CacheClearedEvent;
+use LaborDigital\T3ba\Event\Core\ExtLocalConfLoadedEvent;
+use LaborDigital\T3ba\ExtConfig\Abstracts\AbstractExtConfigApplier;
+use LaborDigital\T3dcc\Core\ClearCacheService;
 use LaborDigital\T3dcc\Core\Message\Message;
 use LaborDigital\T3dcc\Core\Message\MessageBus;
-use LaborDigital\Typo3BetterApi\Event\Events\CacheClearedEvent;
 use Neunerlei\EventBus\Subscription\EventSubscriptionInterface;
-use Neunerlei\EventBus\Subscription\LazyEventSubscriberInterface;
 
-class CacheClearHandler implements LazyEventSubscriberInterface
+class Applier extends AbstractExtConfigApplier
 {
-    /**
-     * @var \LaborDigital\T3dcc\Core\Message\MessageBus
-     */
-    protected $messageBus;
-
-    public function __construct(MessageBus $messageBus)
-    {
-        $this->messageBus = $messageBus;
-    }
-
+    use ContainerAwareTrait;
+    
     /**
      * @inheritDoc
      */
     public static function subscribeToEvents(EventSubscriptionInterface $subscription): void
     {
         $subscription->subscribe(CacheClearedEvent::class, 'onCacheClear');
+        $subscription->subscribe(ExtLocalConfLoadedEvent::class, 'onBoot');
     }
-
+    
     /**
      * Dispatches the flush cache message to the other containers
      *
-     * @param   \LaborDigital\Typo3BetterApi\Event\Events\CacheClearedEvent  $event
+     * @param   \LaborDigital\T3ba\Event\Core\CacheClearedEvent  $event
      *
      * @return void
      */
     public function onCacheClear(CacheClearedEvent $event): void
     {
-        if (! $this->messageBus->hasConfig()) {
+        $messageBus = $this->makeInstance(MessageBus::class);
+        
+        if (! $messageBus->hasConfig()) {
             return;
         }
-
-        $this->messageBus->sendFlushCacheMessage(
+        
+        $messageBus->sendFlushCacheMessage(
             new Message([$event->getGroup()], $event->getTags())
         );
+    }
+    
+    /**
+     * Handles the cache clearing on every request if enabled in the options
+     *
+     * @return void
+     */
+    public function onBoot(): void
+    {
+        if (! $this->state->get('t3dcc.checkInEveryRequest')) {
+            return;
+        }
+        
+        $this->makeInstance(ClearCacheService::class)->clearCacheIfRequired();
     }
 }

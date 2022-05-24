@@ -23,28 +23,31 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Core\Message;
 
 
+use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
 use LaborDigital\T3dcc\Core\ClientId\ClientIdProvider;
 use LaborDigital\T3dcc\Core\Message\Backend\MessageBackendInterface;
-use LaborDigital\Typo3BetterApi\Container\ContainerAwareTrait;
+use Neunerlei\Configuration\State\ConfigState;
+use Neunerlei\Configuration\State\LocallyCachedStatePropertyTrait;
 use RuntimeException;
 use TYPO3\CMS\Core\SingletonInterface;
 
 class MessageBus implements SingletonInterface
 {
     use ContainerAwareTrait;
-
+    use LocallyCachedStatePropertyTrait;
+    
     /**
      * @var \LaborDigital\T3dcc\Core\ClientId\ClientIdProvider
      */
     protected $clientIdProvider;
-
+    
     /**
      * The configuration provided by the config option
      *
      * @var array|null
      */
     protected $config;
-
+    
     /**
      * The instance that has been resolved in createConcreteBackend()
      * NOTE: Don't use this property directly!
@@ -52,28 +55,16 @@ class MessageBus implements SingletonInterface
      * @var MessageBackendInterface
      */
     protected $concreteBackend;
-
+    
     public function __construct(
-        ClientIdProvider $clientIdProvider
-    ) {
-        $this->clientIdProvider = $clientIdProvider;
-    }
-
-    /**
-     * Mostly internal api to inject the configuration provided by the ext config option
-     *
-     * @param   array  $config
-     *
-     * @return $this
-     */
-    public function setConfig(array $config): self
+        ClientIdProvider $clientIdProvider,
+        ConfigState $configState
+    )
     {
-        $this->concreteBackend = null;
-        $this->config          = $config;
-
-        return $this;
+        $this->clientIdProvider = $clientIdProvider;
+        $this->registerCachedProperty('config', 't3dcc.messageBackendConfig', $configState);
     }
-
+    
     /**
      * Returns true if there is some configuration provided, meaning this class needs to perform some actions.
      *
@@ -83,17 +74,29 @@ class MessageBus implements SingletonInterface
     {
         return isset($this->config);
     }
-
+    
+    /**
+     * Returns either the last flush cache message or null if there is no new one
+     *
+     * @return \LaborDigital\T3dcc\Core\Message\Message|null
+     */
     public function getFlushCacheMessage(): ?Message
     {
         return $this->getConcreteBackend()->getFlushCacheMessage();
     }
-
+    
+    /**
+     * Sends a flush cache message to the other containers in the group
+     *
+     * @param   \LaborDigital\T3dcc\Core\Message\Message  $message
+     *
+     * @return void
+     */
     public function sendFlushCacheMessage(Message $message): void
     {
         $this->getConcreteBackend()->sendFlushCacheMessage($message);
     }
-
+    
     /**
      * Internal factory to either create a new instance of the concrete backend, or re-uses the previously created instance
      *
@@ -104,27 +107,27 @@ class MessageBus implements SingletonInterface
         if (isset($this->concreteBackend)) {
             return $this->concreteBackend;
         }
-
+        
         if (! is_array($this->config)) {
             throw new RuntimeException('Failed to create a message backend, because the config was not yet injected through setConfig()');
         }
-
+        
         [$classname, $options] = $this->config;
-
+        
         if (! class_exists($classname)) {
             throw new RuntimeException('There is no class "' . $classname . '" to create a message backend with');
         }
-
-        $backend = $this->getInstanceOf($classname);
-
+        
+        $backend = $this->makeInstance($classname);
+        
         if (! $backend instanceof MessageBackendInterface) {
             throw new RuntimeException(
                 'The provided backend class: "' . $classname . '" is no instance of the backend interface: "' . MessageBackendInterface::class . '"');
         }
-
+        
         $backend->setOptions(is_array($options) ? $options : []);
         $backend->initialize($this->clientIdProvider->getClientId(), $this->clientIdProvider->isNewClientId());
-
+        
         return $this->concreteBackend = $backend;
     }
 }

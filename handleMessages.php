@@ -36,20 +36,20 @@ if (PHP_VERSION_ID < 70200) {
     } else {
         $autoloadPath = dirname(getcwd()) . '/vendor/autoload.php';
     }
-
+    
     if (! is_file($autoloadPath)) {
         die('There is no composer installation resolvable. In that case you must set the path in: "T3DCC_AUTOLOAD_PATH"');
     }
-
+    
     if (defined('T3DCC_ENTRY_PATH')) {
         $entryPath = T3DCC_ENTRY_PATH;
     } elseif (getenv('T3DCC_ENTRY_PATH')) {
         $entryPath = getenv('T3DCC_ENTRY_PATH');
     } else {
-        $docRoot   = $_SERVER['CONTEXT_DOCUMENT_ROOT'] ?? $_SERVER['DOCUMENT_ROOT'] ?? __DIR__;
+        $docRoot = $_SERVER['CONTEXT_DOCUMENT_ROOT'] ?? $_SERVER['DOCUMENT_ROOT'] ?? __DIR__;
         $entryPath = $docRoot . '/index.php';
     }
-
+    
     if (defined('T3DCC_ENTRY_LEVEL')) {
         $entryLevel = T3DCC_ENTRY_LEVEL;
     } elseif (getenv('T3DCC_ENTRY_LEVEL')) {
@@ -57,13 +57,12 @@ if (PHP_VERSION_ID < 70200) {
     } else {
         $entryLevel = 0;
     }
-
-    $classLoader  = require $autoloadPath;
+    
+    $classLoader = require $autoloadPath;
     $_SERVER['_'] = $entryPath;
     SystemEnvironmentBuilder::run($entryLevel, SystemEnvironmentBuilder::REQUESTTYPE_CLI);
-
-    // @todo in v10, this should use the container instance
-    Bootstrap::init($classLoader);
-    (new MessageHandlerApplication)->run();
-
+    
+    Bootstrap::init($classLoader)
+             ->get(MessageHandlerApplication::class)->run();
+    
 })();

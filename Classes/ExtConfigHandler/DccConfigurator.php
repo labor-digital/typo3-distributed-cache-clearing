@@ -24,21 +24,14 @@ namespace LaborDigital\T3dcc\ExtConfigHandler;
 
 
 use InvalidArgumentException;
-use LaborDigital\T3dcc\Core\Cache\CacheFlusher;
-use LaborDigital\T3dcc\Core\ClientId\ClientIdProvider;
-use LaborDigital\T3dcc\Core\Message\MessageBus;
-use LaborDigital\T3dcc\EventHandler\CacheMessageHandler;
-use LaborDigital\Typo3BetterApi\Container\TypoContainer;
-use LaborDigital\Typo3BetterApi\Event\Events\ExtConfigLoadedEvent;
-use LaborDigital\Typo3BetterApi\ExtConfig\Option\AbstractExtConfigOption;
-use Neunerlei\EventBus\Subscription\EventSubscriptionInterface;
+use LaborDigital\T3ba\ExtConfig\Abstracts\AbstractExtConfigConfigurator;
 use TYPO3\CMS\Core\Cache\Backend\ApcuBackend;
 use TYPO3\CMS\Core\Cache\Backend\BackendInterface;
 use TYPO3\CMS\Core\Cache\Backend\FileBackend;
 use TYPO3\CMS\Core\Cache\Backend\SimpleFileBackend;
 use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 
-class DistCacheConfigOption extends AbstractExtConfigOption
+class DccConfigurator extends AbstractExtConfigConfigurator
 {
     /**
      * The registered configuration for the message bus backend
@@ -46,14 +39,14 @@ class DistCacheConfigOption extends AbstractExtConfigOption
      * @var array|null
      */
     protected $messageBackendConfig;
-
+    
     /**
      * The directory where the client id should be stored at
      *
      * @var string
      */
     protected $clientIdStoragePath = BETTER_API_TYPO3_VAR_PATH;
-
+    
     /**
      * A list of cache backend classes that should be cleared when a cache clear message has been received
      *
@@ -61,12 +54,12 @@ class DistCacheConfigOption extends AbstractExtConfigOption
      */
     protected $clearableCacheBackends
         = [
-            FileBackend::class            => true,
-            ApcuBackend::class            => true,
-            SimpleFileBackend::class      => true,
+            FileBackend::class => true,
+            ApcuBackend::class => true,
+            SimpleFileBackend::class => true,
             TransientMemoryBackend::class => true,
         ];
-
+    
     /**
      * If set to true the cache clear messages will be checked in every TYPO3 request
      * If disabled, you have to run the process either by using the T3BA route,
@@ -75,15 +68,7 @@ class DistCacheConfigOption extends AbstractExtConfigOption
      * @var bool
      */
     protected $checkInEveryRequest = false;
-
-    /**
-     * @inheritDoc
-     */
-    public function subscribeToEvents(EventSubscriptionInterface $subscription)
-    {
-        $subscription->subscribe(ExtConfigLoadedEvent::class, 'apply');
-    }
-
+    
     /**
      * Sets the backend to be used to send and retrieve the messages with.
      *
@@ -97,10 +82,10 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     public function setMessageBackend(string $backendClass, ?array $options = null): self
     {
         $this->messageBackendConfig = [$backendClass, $options ?? []];
-
+        
         return $this;
     }
-
+    
     /**
      * Returns either an array where item 0 is the name of the message backend in use and item 1 is the provided option list for it.
      * Alternatively it will return null if there is no active message backend provided
@@ -111,7 +96,7 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     {
         return $this->messageBackendConfig;
     }
-
+    
     /**
      * Removes any previously set message backend configuration; effectively disabling this extension.
      *
@@ -120,10 +105,10 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     public function removeMessageBackend(): self
     {
         $this->messageBackendConfig = null;
-
+        
         return $this;
     }
-
+    
     /**
      * Defines the path to the DIRECTORY, where the client id should be stored.
      * By default, BETTER_API_TYPO3_VAR_PATH is used as storage location.
@@ -137,10 +122,10 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     public function setClientIdStoragePath(string $storagePath): self
     {
         $this->clientIdStoragePath = $storagePath;
-
+        
         return $this;
     }
-
+    
     /**
      * Returns the configured directory where the client id should be stored at
      *
@@ -150,7 +135,7 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     {
         return $this->clientIdStoragePath;
     }
-
+    
     /**
      * Defines a list of cache backend classes that should be flushed when the container receives a distributed cache clear message.
      * In a normal use-case you don't need to flush db or redis backends on every container. So only the common file-based backends will be flushed by default.
@@ -163,14 +148,14 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     public function setClearableCacheBackends(array $backendClassNames): self
     {
         $this->clearableCacheBackends = [];
-
+        
         foreach ($backendClassNames as $backendClassName) {
             $this->addClearableCacheBackend($backendClassName);
         }
-
+        
         return $this;
     }
-
+    
     /**
      * Registers the class of a cache backend to be flushed when the container receives a distributed cache clear message.
      *
@@ -184,17 +169,17 @@ class DistCacheConfigOption extends AbstractExtConfigOption
         if (! class_exists($className)) {
             throw new InvalidArgumentException('Invalid cache backend given! Class: "' . $className . '" does not exist');
         }
-
+        
         if (! in_array(BackendInterface::class, class_implements($className), true)) {
             throw new InvalidArgumentException('Invalid cache backend given! Class: "' . $className . '" does not implement the required interface: "' .
                                                BackendInterface::class . '"');
         }
-
+        
         $this->clearableCacheBackends[$className] = true;
-
+        
         return $this;
     }
-
+    
     /**
      * Returns the list of all cache backends that should be cleared when the container receives a cache clear event
      *
@@ -204,7 +189,7 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     {
         return array_keys($this->clearableCacheBackends);
     }
-
+    
     /**
      * Returns true if the cache clear messages will be checked in every TYPO3 request
      *
@@ -214,7 +199,7 @@ class DistCacheConfigOption extends AbstractExtConfigOption
     {
         return $this->checkInEveryRequest;
     }
-
+    
     /**
      * If set to true the cache clear messages will be checked in every TYPO3 request
      * If disabled, you have to run the process either by using the T3BA route,
@@ -224,29 +209,12 @@ class DistCacheConfigOption extends AbstractExtConfigOption
      *
      * @param   bool  $checkInEveryRequest
      *
-     * @return \LaborDigital\T3dcc\ExtConfigHandler\DistCacheConfigOption
+     * @return \LaborDigital\T3dcc\ExtConfigHandler\DccConfigurator
      */
     public function setCheckInEveryRequest(bool $checkInEveryRequest): self
     {
         $this->checkInEveryRequest = $checkInEveryRequest;
-
+        
         return $this;
-    }
-
-    /**
-     * Internal helper to apply the collected configuration to the service
-     *
-     * @return void
-     * @internal
-     */
-    public function apply(): void
-    {
-        $c = TypoContainer::getInstance();
-        $c->get(MessageBus::class)->setConfig($this->getMessageBackendConfig());
-        $c->get(ClientIdProvider::class)->setStoragePath($this->getClientIdStoragePath());
-        $c->get(CacheFlusher::class)->setFlushableBackends($this->getClearableCacheBackends());
-        if ($this->checkInEveryRequest()) {
-            CacheMessageHandler::$checkOnEveryRequest = true;
-        }
     }
 }

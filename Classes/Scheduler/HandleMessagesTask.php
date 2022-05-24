@@ -23,22 +23,35 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Scheduler;
 
 
+use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
+use LaborDigital\T3ba\ExtConfigHandler\Scheduler\Task\ConfigureTaskInterface;
+use LaborDigital\T3ba\ExtConfigHandler\Scheduler\Task\TaskConfigurator;
 use LaborDigital\T3dcc\Core\ClearCacheService;
-use LaborDigital\Typo3BetterApi\Container\ContainerAwareTrait;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
-class HandleMessagesTask extends AbstractTask
+class HandleMessagesTask extends AbstractTask implements ConfigureTaskInterface
 {
     use ContainerAwareTrait;
-
+    
+    /**
+     * @inheritDoc
+     */
+    public static function configure(TaskConfigurator $taskConfigurator, ExtConfigContext $context): void
+    {
+        $taskConfigurator->setTitle('T3DCC: Handle messages')
+                         ->setDescription(
+                             'Clears the configured caches if a clear-cache message was received by another instance. This job must RUN ON ALL INSTANCES!');
+    }
+    
     /**
      * @inheritDoc
      */
     public function execute(): bool
     {
-        $this->getInstanceOf(ClearCacheService::class)->clearCacheIfRequired();
-
+        $this->makeInstance(ClearCacheService::class)->clearCacheIfRequired();
+        
         return true;
     }
-
+    
 }

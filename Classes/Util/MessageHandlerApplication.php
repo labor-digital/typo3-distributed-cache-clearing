@@ -26,7 +26,10 @@ namespace LaborDigital\T3dcc\Util;
 use LaborDigital\T3dcc\Core\ClearCacheService;
 use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Console\CommandApplication;
+use TYPO3\CMS\Core\Console\CommandRegistry;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class MessageHandlerApplication extends CommandApplication
@@ -34,26 +37,30 @@ class MessageHandlerApplication extends CommandApplication
     /**
      * @inheritDoc
      * @noinspection PhpMissingParentConstructorInspection
+     * @noinspection MagicMethodsValidityInspection
      */
-    public function __construct() { }
-
+    public function __construct(Context $context, ?CommandRegistry $_ = null)
+    {
+        $this->context = $context;
+    }
+    
     /**
      * @inheritDoc
      */
     public function run(callable $execute = null)
     {
         $this->initializeContext();
-
+        
         Bootstrap::loadExtTables();
         Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
-        Bootstrap::initializeLanguageObject();
-
+        $GLOBALS['LANG'] = LanguageService::createFromUserPreferences($GLOBALS['BE_USER']);
+        
         $cacheService = GeneralUtility::makeInstance(ClearCacheService::class);
         $cacheService->clearCacheIfRequired();
-
+        
         if ($execute !== null) {
             call_user_func($execute);
         }
     }
-
+    
 }

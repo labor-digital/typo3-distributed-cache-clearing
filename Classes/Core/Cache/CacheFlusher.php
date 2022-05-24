@@ -23,6 +23,8 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Core\Cache;
 
 
+use Neunerlei\Configuration\State\ConfigState;
+use Neunerlei\Configuration\State\LocallyCachedStatePropertyTrait;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -31,12 +33,13 @@ use TYPO3\CMS\Core\SingletonInterface;
 class CacheFlusher implements LoggerAwareInterface, SingletonInterface
 {
     use LoggerAwareTrait;
-
+    use LocallyCachedStatePropertyTrait;
+    
     /**
      * @var \TYPO3\CMS\Core\Cache\CacheManager
      */
     protected $cacheManager;
-
+    
     /**
      * The list of backend classes that are available to be flushed.
      * An empty array means flush all caches
@@ -44,25 +47,13 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
      * @var array
      */
     protected $flushableBackends = [];
-
-    public function __construct(CacheManager $cacheManager)
+    
+    public function __construct(CacheManager $cacheManager, ConfigState $configState)
     {
         $this->cacheManager = $cacheManager;
+        $this->registerCachedProperty('flushableBackends', 't3dcc.clearableCacheBackends', $configState);
     }
-
-    /**
-     * Sets the list of backend classes that are available to be flushed.
-     * An empty array means flush all caches
-     *
-     * @param   array  $backendClasses
-     *
-     * @return void
-     */
-    public function setFlushableBackends(array $backendClasses): void
-    {
-        $this->flushableBackends = $backendClasses;
-    }
-
+    
     /**
      * Clears all caches that have a "flushable backend" and are registered with one or more
      * of the provided groups. If a list of tags is given, only the provided tags will be flushed.
@@ -76,33 +67,34 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
     public function flushCaches(?array $groups, ?array $tags): void
     {
         $configurations = CacheManagerAdapter::extractConfiguration($this->cacheManager);
-
-        $clearAllGroups   = in_array('all', $groups, true);
+        
+        $clearAllGroups = in_array('all', $groups, true);
         $clearAllBackends = empty($this->flushableBackends);
+        
         foreach ($configurations as $cacheKey => $configuration) {
             if (! $clearAllGroups &&
                 ! ((is_array($configuration['groups'] ?? null)) && array_intersect($groups, $configuration['groups']))) {
                 if ($this->logger) {
                     $this->logger->notice('Don\'t flush cache "' . $cacheKey . '", because not in allowed groups: "' . implode('", "', $groups) . '"');
                 }
-
+                
                 continue;
             }
-
+            
             if (! $clearAllBackends &&
                 ! in_array($configuration['backend'] ?? null, $this->flushableBackends, true)
             ) {
                 if ($this->logger) {
                     $this->logger->notice('Don\'t flush cache "' . $cacheKey . '", because the backend is not allowed to be fushed');
                 }
-
+                
                 continue;
             }
-
+            
             if ($this->logger) {
                 $this->logger->info('Clearing cache: "' . $cacheKey . '" locally...');
             }
-
+            
             if ($tags) {
                 $this->cacheManager->getCache($cacheKey)->flushByTags($tags);
             } else {

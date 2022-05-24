@@ -32,29 +32,26 @@ use Psr\Log\LoggerAwareTrait;
 class RedisMessageBackend implements MessageBackendInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
-
-    protected const NAMESPACE   = 't3dcc:messages.';
+    
+    protected const NAMESPACE = 't3dcc:messages.';
     protected const MESSAGE_KEY = self::NAMESPACE . 'message';
-
+    
     protected $options;
-
+    
     /**
      * @var \Redis
      */
     protected $backend;
-
+    
     protected $clientId;
-
-    /**
-     * @inheritDoc
-     */
+    
     public function __destruct()
     {
         if ($this->backend) {
             $this->backend->close();
         }
     }
-
+    
     /**
      * @inheritDoc
      */
@@ -65,33 +62,33 @@ class RedisMessageBackend implements MessageBackendInterface, LoggerAwareInterfa
                 'type' => 'string',
             ],
             'password' => [
-                'type'    => ['string', 'null'],
+                'type' => ['string', 'null'],
                 'default' => null,
             ],
             'database' => [
-                'type'    => 'int',
+                'type' => 'int',
                 'default' => 1,
             ],
-            'port'     => [
-                'type'    => 'int',
+            'port' => [
+                'type' => 'int',
                 'default' => 6379,
             ],
-            'ttl'      => [
-                'type'    => 'int',
+            'ttl' => [
+                'type' => 'int',
                 'default' => 60 * 15,
             ],
         ]);
     }
-
+    
     /**
      * @inheritDoc
      */
     public function initialize(string $clientId, bool $firstTime): void
     {
         $this->clientId = $clientId;
-        $this->backend  = $this->connect();
+        $this->backend = $this->connect();
     }
-
+    
     /**
      * @inheritDoc
      */
@@ -101,24 +98,24 @@ class RedisMessageBackend implements MessageBackendInterface, LoggerAwareInterfa
             if ($this->logger) {
                 $this->logger->error('Executed ' . __FUNCTION__ . ' before running initialize()');
             }
-
+            
             return null;
         }
-
+        
         $msg = $this->backend->get(static::MESSAGE_KEY);
         if (! $msg) {
             return null;
         }
-
+        
         if ($this->backend->get(static::NAMESPACE . $this->clientId) !== false) {
             return null;
         }
-
+        
         $this->backend->set(static::NAMESPACE . $this->clientId, true);
-
+        
         return Message::fromArray($msg);
     }
-
+    
     /**
      * @inheritDoc
      */
@@ -128,18 +125,18 @@ class RedisMessageBackend implements MessageBackendInterface, LoggerAwareInterfa
             if ($this->logger) {
                 $this->logger->error('Executed ' . __FUNCTION__ . ' before running initialize()');
             }
-
+            
             return;
         }
-
+        
         foreach ($this->backend->keys(static::NAMESPACE . '*') as $key) {
             $this->backend->del($key);
         }
-
+        
         $this->backend->set(static::MESSAGE_KEY, $message->toArray());
         $this->backend->set(static::NAMESPACE . $this->clientId, true);
     }
-
+    
     /**
      * Connects the
      *
@@ -150,19 +147,19 @@ class RedisMessageBackend implements MessageBackendInterface, LoggerAwareInterfa
         if (! class_exists(\Redis::class)) {
             throw new \RuntimeException('Failed to connect to redis backend, because the php extension is not available');
         }
-
+        
         $backend = new \Redis();
-
+        
         $backend->connect($this->options['hostname'], $this->options['port']);
-
+        
         if (! empty($this->options['password'])) {
             $backend->auth($this->options['password']);
         }
-
+        
         $backend->select($this->options['database']);
-
+        
         $backend->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_JSON);
-
+        
         return $backend;
     }
 }

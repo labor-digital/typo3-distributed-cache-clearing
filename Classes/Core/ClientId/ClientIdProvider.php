@@ -23,6 +23,8 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Core\ClientId;
 
 
+use Neunerlei\Configuration\State\ConfigState;
+use Neunerlei\Configuration\State\LocallyCachedStatePropertyTrait;
 use Neunerlei\FileSystem\Fs;
 use Neunerlei\Inflection\Inflector;
 use Neunerlei\PathUtil\Path;
@@ -31,25 +33,17 @@ use TYPO3\CMS\Core\Utility\StringUtility;
 
 class ClientIdProvider implements SingletonInterface
 {
+    use LocallyCachedStatePropertyTrait;
+    
     protected $newClientId = false;
     protected $clientId;
     protected $storagePath = BETTER_API_TYPO3_VAR_PATH;
-
-    /**
-     * Allows the outside world to set the path to the DIRECTORY where the client id should be stored.
-     * By default, BETTER_API_TYPO3_VAR_PATH is used as storage location.
-     * The storage path MUST be located >inside< the container! If you use a directory in a shared, attached file-storage
-     * this logic will not work, as all containers will use the same client id.
-     *
-     * @param   string  $storagePath
-     *
-     * @return void
-     */
-    public function setStoragePath(string $storagePath): void
+    
+    public function __construct(ConfigState $configState)
     {
-        $this->storagePath = $storagePath;
+        $this->registerCachedProperty('storagePath', 't3dcc.clientIdStoragePath', $configState);
     }
-
+    
     /**
      * Returns true if the id provided by getClientId() was generated new for this request.
      * This allows the backends to generate subscriptions or databases if required
@@ -60,7 +54,7 @@ class ClientIdProvider implements SingletonInterface
     {
         return $this->newClientId;
     }
-
+    
     /**
      * Returns a unique id for this client/container. The client id will be persisted as long as the container exists
      *
@@ -71,19 +65,19 @@ class ClientIdProvider implements SingletonInterface
         if (isset($this->clientId)) {
             return $this->clientId;
         }
-
+        
         $filename = $this->getStorageFilename();
         if (Fs::isReadable($filename)) {
             return $this->clientId = trim(Fs::readFile($filename));
         }
-
+        
         $this->newClientId = true;
-        $this->clientId    = $this->generateClientId();
+        $this->clientId = $this->generateClientId();
         Fs::writeFile($filename, $this->clientId);
-
+        
         return $this->clientId;
     }
-
+    
     /**
      * Completely removes the (potentially) stored client id from both memory and the storage
      *
@@ -91,11 +85,11 @@ class ClientIdProvider implements SingletonInterface
      */
     public function flush(): void
     {
-        $this->clientId    = null;
+        $this->clientId = null;
         $this->newClientId = false;
         Fs::remove($this->getStorageFilename());
     }
-
+    
     /**
      * Generates the storage filename of the local client id
      *
@@ -105,7 +99,7 @@ class ClientIdProvider implements SingletonInterface
     {
         return Path::unifyPath($this->storagePath, '/') . 'dcc-client-id.txt';
     }
-
+    
     /**
      * Generates a new, unique id for this client/container
      *
@@ -121,7 +115,7 @@ class ClientIdProvider implements SingletonInterface
             $_SERVER['SERVER_ADDR'] ?? null,
             $_SERVER['PATH'] ?? null,
         ];
-
+        
         return Inflector::toUuid(implode('|', $params));
     }
 }

@@ -33,26 +33,33 @@ class ClearCacheService implements SingletonInterface
      * @var \LaborDigital\T3dcc\Core\Message\MessageBus
      */
     protected $messageBus;
-
+    
     /**
      * @var \LaborDigital\T3dcc\Core\Cache\CacheFlusher
      */
     protected $cacheFlusher;
-
+    
     public function __construct(
         MessageBus $messageBus,
         CacheFlusher $cacheFlusher
-    ) {
-        $this->messageBus   = $messageBus;
+    )
+    {
+        $this->messageBus = $messageBus;
         $this->cacheFlusher = $cacheFlusher;
     }
-
+    
+    /**
+     * Checks if there is a new clear cache message in the bus and starts the
+     * flushing of required caches in the local container
+     *
+     * @return void
+     */
     public function clearCacheIfRequired(): void
     {
         if (! $this->messageBus->hasConfig()) {
             return;
         }
-
+        
         $message = $this->messageBus->getFlushCacheMessage();
         if ($message) {
             $this->cacheFlusher->flushCaches($message->getGroups(), $message->getTags());
