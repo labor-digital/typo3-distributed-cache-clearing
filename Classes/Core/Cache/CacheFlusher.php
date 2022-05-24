@@ -23,8 +23,10 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Core\Cache;
 
 
+use LaborDigital\T3dcc\Event\CacheRemotelyFlushedEvent;
 use Neunerlei\Configuration\State\ConfigState;
 use Neunerlei\Configuration\State\LocallyCachedStatePropertyTrait;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -41,6 +43,11 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
     protected $cacheManager;
     
     /**
+     * @var \Psr\EventDispatcher\EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+    
+    /**
      * The list of backend classes that are available to be flushed.
      * An empty array means flush all caches
      *
@@ -48,9 +55,14 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
      */
     protected $flushableBackends = [];
     
-    public function __construct(CacheManager $cacheManager, ConfigState $configState)
+    public function __construct(
+        CacheManager $cacheManager,
+        EventDispatcherInterface $eventDispatcher,
+        ConfigState $configState
+    )
     {
         $this->cacheManager = $cacheManager;
+        $this->eventDispatcher = $eventDispatcher;
         $this->registerCachedProperty('flushableBackends', 't3dcc.clearableCacheBackends', $configState);
     }
     
@@ -64,12 +76,18 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
      *
      * @return void
      */
-    public function flushCaches(?array $groups, ?array $tags): void
+    public
+    function flushCaches(
+        ?array $groups,
+        ?array $tags
+    ): void
     {
         $configurations = CacheManagerAdapter::extractConfiguration($this->cacheManager);
         
         $clearAllGroups = in_array('all', $groups, true);
         $clearAllBackends = empty($this->flushableBackends);
+        
+        $clearedCaches = [];
         
         foreach ($configurations as $cacheKey => $configuration) {
             if (! $clearAllGroups &&
@@ -100,6 +118,12 @@ class CacheFlusher implements LoggerAwareInterface, SingletonInterface
             } else {
                 $this->cacheManager->getCache($cacheKey)->flush();
             }
+            
+            $clearedCaches[] = $cacheKey;
         }
+        
+        $this->eventDispatcher->dispatch(new CacheRemotelyFlushedEvent(
+            $clearedCaches, $groups, $tags
+        ));
     }
 }

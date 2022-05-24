@@ -26,8 +26,11 @@ namespace LaborDigital\T3dcc\Core\Message;
 use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
 use LaborDigital\T3dcc\Core\ClientId\ClientIdProvider;
 use LaborDigital\T3dcc\Core\Message\Backend\MessageBackendInterface;
+use LaborDigital\T3dcc\Event\IncomingMessageFilterEvent;
+use LaborDigital\T3dcc\Event\OutgoingMessageFilterEvent;
 use Neunerlei\Configuration\State\ConfigState;
 use Neunerlei\Configuration\State\LocallyCachedStatePropertyTrait;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\SingletonInterface;
 
@@ -40,6 +43,11 @@ class MessageBus implements SingletonInterface
      * @var \LaborDigital\T3dcc\Core\ClientId\ClientIdProvider
      */
     protected $clientIdProvider;
+    
+    /**
+     * @var \Psr\EventDispatcher\EventDispatcherInterface
+     */
+    protected $eventDispatcher;
     
     /**
      * The configuration provided by the config option
@@ -58,10 +66,12 @@ class MessageBus implements SingletonInterface
     
     public function __construct(
         ClientIdProvider $clientIdProvider,
+        EventDispatcherInterface $eventDispatcher,
         ConfigState $configState
     )
     {
         $this->clientIdProvider = $clientIdProvider;
+        $this->eventDispatcher = $eventDispatcher;
         $this->registerCachedProperty('config', 't3dcc.messageBackendConfig', $configState);
     }
     
@@ -82,7 +92,11 @@ class MessageBus implements SingletonInterface
      */
     public function getFlushCacheMessage(): ?Message
     {
-        return $this->getConcreteBackend()->getFlushCacheMessage();
+        return $this->eventDispatcher->dispatch(
+            new IncomingMessageFilterEvent(
+                $this->getConcreteBackend()->getFlushCacheMessage()
+            )
+        )->getMessage();
     }
     
     /**
@@ -94,7 +108,11 @@ class MessageBus implements SingletonInterface
      */
     public function sendFlushCacheMessage(Message $message): void
     {
-        $this->getConcreteBackend()->sendFlushCacheMessage($message);
+        $this->getConcreteBackend()->sendFlushCacheMessage(
+            $this->eventDispatcher->dispatch(
+                new OutgoingMessageFilterEvent($message)
+            )->getMessage()
+        );
     }
     
     /**
