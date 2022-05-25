@@ -21,7 +21,9 @@
         "issues": "https://github.com/labor-digital/typo3-distributed-cache-clearing/issues",
         "source": "https://github.com/labor-digital/typo3-distributed-cache-clearing"
     },
-    "require": {},
+    "require": {
+			"labor-digital/typo3-better-api": "^9.0.0"
+		},
     "autoload": {
         "psr-4": {
             "LaborDigital\\T3dcc\\": "Classes"
