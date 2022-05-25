@@ -69,10 +69,25 @@ class Dcc implements ConfigureDistributedCacheClearingInterface
 
 If your infrastructure allows you to perform an HTTP request to EACH container independently,
 and you use the T3FA extension, you may use the `DccBundle` in your site routing configuration
-The route will be available at: `/dcc/clearIfRequired`.
+The route will be available at: `/api/dcc/clearIfRequired`.
 
 ```php
-Not yet implemented!
+<?php
+namespace LaborDigital\T3baExample\Configuration\ExtConfig\Site\Common;
+
+use LaborDigital\T3dcc\Api\Bundle\DccBundle;
+use LaborDigital\T3fa\ExtConfigHandler\Api\BundleCollector;
+use LaborDigital\T3fa\ExtConfigHandler\Api\ConfigureApiInterface;
+
+class Api implements ConfigureApiInterface
+{
+    public static function registerBundles(BundleCollector $collector): void
+    {
+        $collector->register(DccBundle::class);
+    }
+    
+    /* ... */
+}
 ```
 
 Alternatively you can use the built-in cli command `t3dcc:handleMessages` which does the same.

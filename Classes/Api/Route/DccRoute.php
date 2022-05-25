@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace LaborDigital\T3dcc\Api\Route;
 
 
-use LaborDigital\T3ba\Core\Exception\NotImplementedException;
 use LaborDigital\T3dcc\Core\ClearCacheService;
 use LaborDigital\T3fa\Core\Routing\Controller\AbstractRouteController;
 use Psr\Http\Message\ResponseInterface;
@@ -37,16 +36,7 @@ class DccRoute extends AbstractRouteController
     
     public function __construct(ClearCacheService $cacheService)
     {
-        throw new NotImplementedException();
         $this->cacheService = $cacheService;
-    }
-    
-    /**
-     * @inheritDoc
-     */
-    public static function configureRoutes(RouteCollector $routes)
-    {
-        $routes->get('/dcc/clearIfRequired', 'clearAction');
     }
     
     public function clearAction(): ResponseInterface

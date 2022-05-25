@@ -25,6 +25,7 @@ namespace LaborDigital\T3dcc\Configuration\ExtConfig;
 
 use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
 use LaborDigital\T3ba\ExtConfigHandler\Di\ConfigureDiInterface;
+use LaborDigital\T3dcc\Api\Route\DccRoute;
 use LaborDigital\T3dcc\Command\HandleMessagesCommand;
 use LaborDigital\T3dcc\Core\Cache\CacheFlusher;
 use LaborDigital\T3dcc\Core\ClearCacheService;
@@ -34,6 +35,7 @@ use LaborDigital\T3dcc\Core\Message\Backend\Registry\RegistryMessageBackend;
 use LaborDigital\T3dcc\Core\Message\MessageBus;
 use LaborDigital\T3dcc\ExtConfigHandler\Applier;
 use LaborDigital\T3dcc\Util\MessageHandlerApplication;
+use LaborDigital\T3fa\Core\Routing\Controller\AbstractRouteController;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -58,6 +60,10 @@ class Di implements ConfigureDiInterface
                  ->set(ClearCacheService::class)
                  ->set(MessageHandlerApplication::class)->public()
                  ->set(Applier::class);
+        
+        if (class_exists(AbstractRouteController::class)) {
+            $services->set(DccRoute::class);
+        }
     }
     
     /**
